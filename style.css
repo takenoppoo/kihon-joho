@@ -67,3 +67,8 @@ nav{display:flex;align-items:center;flex-wrap:wrap;gap:0 4px;white-space:nowrap}
 .ch .chimg{flex:1;min-width:0;width:auto;height:auto;max-height:none}
 .crumb{font-size:13px;color:#51607a;margin:0 0 8px}.crumb a{color:var(--accent);text-decoration:none;font-weight:600}
 .list a{color:var(--accent);text-decoration:none}
+.spktop{position:absolute;top:10px;right:12px;z-index:2}
+.spktop .spkbox{flex-direction:row-reverse;align-items:center;gap:8px;flex-wrap:nowrap}
+.spktop .btn.spk{padding:4px 12px;font-size:14px;min-height:0}
+.spktop .credit{font-size:11px;white-space:nowrap}
+.card.study .meta:first-child,.card.study>div:nth-child(2) .meta:first-child{padding-right:130px}

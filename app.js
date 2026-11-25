@@ -160,14 +160,15 @@ function study(n){
   app.appendChild(el('h1',0,'学習資料　第'+v.vol+'巻 '+v.title));
   app.appendChild(el('p','lead','読むだけ、または🔊で聞くだけで学べます。答えと解説は最初から表示しています。'));
   v.qs.slice().sort(function(a,b){return a.ex-b.ex}).forEach(function(q){
-    var c=el('div','card');
+    var c=el('div','card study');
+    var top=el('div','spktop');top.appendChild(spk(readText(q,'例題'+q.ex),function(){return fkey(q,'')}));c.appendChild(top);
     c.appendChild(qBlock({q:q},'例題 '+q.ex));
+    var m0=c.querySelector('.meta');if(m0)m0.style.minHeight='34px';
     var ul=el('ul','choices');
     q.choices.forEach(function(t,i){var li=el('li');var b=el('div','ch'+(i===q.ans?' right':''));b.appendChild(el('span','m',MARK[i]));b.appendChild(chBody(t));li.appendChild(b);ul.appendChild(li)});
     c.appendChild(ul);
     c.appendChild(el('div','result ok','答え：'+MARK[q.ans]));
     c.appendChild(expBlock(q,true));
-    var w=el('div','btns');w.appendChild(spk(readText(q,'例題'+q.ex),function(){return fkey(q,'')}));c.appendChild(w);
     app.appendChild(c);
   });
   var a=el('a','btn primary','テストへ進む');a.href='#test-'+v.vol;var w=el('div','btns');w.appendChild(a);app.appendChild(w);
