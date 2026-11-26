@@ -106,6 +106,11 @@ def safe_work(t):
 with ThreadPoolExecutor(max_workers=JOBS) as ex:
     for r in ex.map(safe_work, tasks):
         manifest.update(r)
+# 今回作った分だけでなく、audioフォルダにある音声ぜんぶを目録に載せる（前の目録を上書きして消さないため）
+for fn in os.listdir("audio"):
+    b, e = os.path.splitext(fn)
+    if e in (".mp3", ".wav") and (b not in manifest or e == ".mp3"):
+        manifest[b] = fn
 json.dump(manifest, open("audio/manifest.json", "w"), ensure_ascii=False)
 open("audio/manifest.js", "w", encoding="utf-8").write("window.AUDIO_MANIFEST=" + json.dumps(manifest, ensure_ascii=False) + ";")
 print("完了:", len(manifest), "ファイル")
