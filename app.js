@@ -26,7 +26,8 @@ function chk(no){
   b.onclick=function(){toggleW(no);draw()};draw();return b;
 }
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
-function clear(){stopSpeak();app.innerHTML='';var cs=document.getElementById('crumbslot');if(cs)cs.innerHTML='';window.scrollTo(0,0)}
+function slot(){var s=document.getElementById('crumbslot');if(!s){var h=document.querySelector('header');if(h){s=document.createElement('div');s.id='crumbslot';h.appendChild(s)}}return s}
+function clear(){stopSpeak();app.innerHTML='';var cs=slot();if(cs)cs.innerHTML='';window.scrollTo(0,0)}
 
 var synth=window.speechSynthesis, playing=null;
 function stopSpeak(){if(synth)synth.cancel();if(audio){audio.pause();audio=null}if(playing){playing.classList.remove('on');playing=null}}
@@ -108,7 +109,7 @@ var SUBJ=[
 function allFields(s){return s.groups.reduce(function(a,g){return a.concat(g.fields)},[])}
 function volsOf(sid,fid){return VOLS.filter(function(v){return (v.subj||'A')===sid&&(v.field||'sec')===fid})}
 function qCount(vs){return vs.reduce(function(n,v){return n+v.qs.length},0)}
-function crumb(parts){var p=el('p','crumb');parts.forEach(function(x,i){if(i)p.appendChild(document.createTextNode(' ＞ '));if(x[1]){var a=el('a',0,x[0]);a.href=x[1];p.appendChild(a)}else p.appendChild(el('span',0,x[0]))});var cs=document.getElementById('crumbslot');if(cs){cs.innerHTML='';cs.appendChild(p);return document.createTextNode('')}return p}
+function crumb(parts){var p=el('p','crumb');parts.forEach(function(x,i){if(i)p.appendChild(document.createTextNode(' ＞ '));if(x[1]){var a=el('a',0,x[0]);a.href=x[1];p.appendChild(a)}else p.appendChild(el('span',0,x[0]))});var cs=slot();if(cs){cs.innerHTML='';cs.appendChild(p);return document.createTextNode('')}return p}
 function volCrumb(v,last){var s=SUBJ.filter(function(x){return x.id===(v.subj||'A')})[0],f=s&&allFields(s).filter(function(x){return x.id===(v.field||'sec')})[0];var a=[['ホーム','#top']];if(s)a.push([s.name,'#subj-'+s.id]);if(s&&f)a.push([f.name,'#field-'+s.id+'-'+f.id]);a.push([last]);return crumb(a)}
 function tile(title,desc,meta,href){
   var c=el('div','card');c.appendChild(el('h2',0,title));

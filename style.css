@@ -79,3 +79,5 @@ nav{display:flex;align-items:center;flex-wrap:wrap;gap:0 4px;white-space:nowrap}
 .fin{font-weight:700;color:var(--main);margin:10px 0}
 
 .stepc{margin:10px 0;padding:8px 10px;background:#fff;border-left:3px solid #1FA596;border-radius:6px}.stepc p{margin:4px 0}.stepc .stepT{font-weight:700;color:#14796e}
+
+.top nav{margin-left:auto}
