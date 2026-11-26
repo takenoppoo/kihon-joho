@@ -207,7 +207,7 @@ function run(items,mode,title){
       fixed=true;var ok=it.order[sel]===q.ans,corrK=it.order.indexOf(q.ans);
       btns.forEach(function(x){x.disabled=true});
       btns[corrK].classList.add('right');if(!ok)btns[sel].classList.add('wrong');
-      area.appendChild(el('div','result '+(ok?'ok':'ng'),ok?'○ 正解':'× 不正解　正解は '+MARK[corrK]));
+      sfx(ok);area.appendChild(el('div','result '+(ok?'ok':'ng'),ok?'○ 正解':'× 不正解　正解は '+MARK[corrK]));
       area.appendChild(expBlock(q));
       if(!(q.id in firstTry))firstTry[q.id]=ok;
       var ws=load();
@@ -274,5 +274,43 @@ function route(){
   if(m){({study:study,test:test,review:review,weak:weak})[m[1]](n)}
   else home();
 }
+// 効果音（ピンポーン／ぶっぶー）。音声ファイルは使わず、ブラウザで鳴らします
+var sfxOn=true;try{sfxOn=localStorage.getItem('kihon_sfx')!=='0'}catch(e){}
+var actx=null;
+function ldv(k,d){try{var v=parseFloat(localStorage.getItem(k));return isNaN(v)?d:v}catch(e){return d}}
+var sfxVol=ldv('kihon_sfxvol',0.5),bgmVol=ldv('kihon_bgmvol',0.5);
+function slider(key,get,set){var r=document.createElement('input');r.type='range';r.min=0;r.max=1;r.step=0.05;r.value=get();r.className='vol';r.title='音量';r.oninput=function(){set(parseFloat(r.value));try{localStorage.setItem(key,r.value)}catch(e){}};return r}
+function tone(f,t0,d,type,vol){var o=actx.createOscillator(),g=actx.createGain(),lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1800;o.type=type;o.frequency.value=f;o.connect(g);g.connect(lp);lp.connect(actx.destination);var t=actx.currentTime+t0;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol*sfxVol*2,t+0.04);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.05)}
+function sfx(ok){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+ if(ok){tone(880,0,0.35,'sine',0.12);tone(659,0.2,0.6,'sine',0.12)}
+ else{tone(196,0,0.18,'triangle',0.14);tone(196,0.24,0.4,'triangle',0.14)}}catch(e){}}
+(function(){var nav=document.querySelector('header nav');if(!nav)return;var l=document.createElement('label');l.className='spd';var c=document.createElement('input');c.type='checkbox';c.checked=sfxOn;c.onchange=function(){sfxOn=c.checked;try{localStorage.setItem('kihon_sfx',sfxOn?'1':'0')}catch(e){}if(sfxOn)sfx(true)};l.appendChild(c);l.appendChild(document.createTextNode('効果音'));l.appendChild(slider('kihon_sfxvol',function(){return sfxVol},function(v){sfxVol=v;clearTimeout(window.__sv);window.__sv=setTimeout(function(){if(sfxOn)sfx(true)},250)}));nav.insertBefore(l,nav.firstChild)})();
+// 集中用のBGM（ピアノ＋弦のやさしい音）。曲のファイルは使わず、ブラウザで自動演奏します
+var bgmOn=false;try{bgmOn=localStorage.getItem('kihon_bgm')==='1'}catch(e){}
+var bgm={run:false,timer:null,master:null,next:0,ci:0};
+var BPM=104,BT=60/BPM,CH=[{b:48,c:[60,64,67],m:[67,72,76,79,81]},{b:43,c:[59,62,67],m:[71,74,79,67,83]},{b:45,c:[57,60,64],m:[72,76,81,69,79]},{b:41,c:[57,60,65],m:[72,77,81,69,76]}];
+function mf(m){return 440*Math.pow(2,(m-69)/12)}
+var nbuf=null;function noise(){if(!nbuf){nbuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);var d=nbuf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1}return nbuf}
+function bnote(f,t,vol,dur,type,att){var o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;o.connect(g);g.connect(bgm.bus);g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.start(t);o.stop(t+dur+0.05)}
+function bkick(t,v){var o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.setValueAtTime(130,t);o.frequency.exponentialRampToValueAtTime(45,t+0.12);o.connect(g);g.connect(bgm.bus);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.28);o.start(t);o.stop(t+0.3)}
+function bnz(t,v,dur,ft,ff,q){var s=actx.createBufferSource(),f=actx.createBiquadFilter(),g=actx.createGain();s.buffer=noise();f.type=ft;f.frequency.value=ff;if(q)f.Q.value=q;s.connect(f);f.connect(g);g.connect(bgm.bus);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);s.start(t);s.stop(t+dur+0.02)}
+function bsched(){if(!bgm.run)return;while(bgm.next<actx.currentTime+2.5){var c=CH[bgm.ci%CH.length],t0=bgm.next,E=BT/2,last=-1;
+ for(var j=0;j<8;j++){var t=t0+j*E;
+  if(j===0||j===4)bkick(t,0.5);
+  if(j===2||j===6)bnz(t,0.1,0.14,'bandpass',1600,0.8);
+  bnz(t,j%2?0.05:0.028,0.05,'highpass',7000);
+  if(j===0||j===3||j===4||j===6)bnote(mf(c.b),t,0.22,j===0?0.5:0.26,'triangle',0.01);
+  if(j%2===1)c.c.forEach(function(m){bnote(mf(m),t,0.045,0.2,'square',0.005)});
+  if(Math.random()<(j%2?0.4:0.55)){var k=Math.floor(Math.random()*c.m.length);if(k===last)k=(k+1)%c.m.length;last=k;var f=mf(c.m[k]);bnote(f,t,0.07,0.5,'triangle',0.008);bnote(f*2,t,0.015,0.25,'sine',0.008)}}
+ bgm.next+=BT*4;bgm.ci++}}
+function bgmStart(){if(bgm.run)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+ var m=actx.createGain(),lp=actx.createBiquadFilter(),d=actx.createDelay(1),fb=actx.createGain(),wet=actx.createGain();lp.type='lowpass';lp.frequency.value=5000;d.delayTime.value=BT*0.75;fb.gain.value=0.25;wet.gain.value=0.22;
+ var bus=actx.createGain();bus.connect(lp);bus.connect(d);d.connect(fb);fb.connect(d);d.connect(wet);wet.connect(lp);lp.connect(m);m.connect(actx.destination);
+ m.gain.setValueAtTime(0.0001,actx.currentTime);m.gain.linearRampToValueAtTime(Math.max(0.0001,1.1*bgmVol),actx.currentTime+2);
+ bgm.master=m;bgm.bus=bus;bgm.run=true;bgm.next=actx.currentTime+0.2;bgm.ci=0;bsched();bgm.timer=setInterval(bsched,500)}catch(e){}}
+function bgmStop(){if(!bgm.run)return;bgm.run=false;clearInterval(bgm.timer);try{var m=bgm.master;m.gain.cancelScheduledValues(actx.currentTime);m.gain.setValueAtTime(m.gain.value,actx.currentTime);m.gain.linearRampToValueAtTime(0.0001,actx.currentTime+1);setTimeout(function(){try{m.disconnect()}catch(e){}},1500)}catch(e){}}
+(function(){var nav=document.querySelector('header nav');if(!nav)return;var l=document.createElement('label');l.className='spd';var c=document.createElement('input');c.type='checkbox';c.checked=bgmOn;c.onchange=function(){bgmOn=c.checked;try{localStorage.setItem('kihon_bgm',bgmOn?'1':'0')}catch(e){}if(bgmOn)bgmStart();else bgmStop()};l.appendChild(c);l.appendChild(document.createTextNode('BGM'));l.appendChild(slider('kihon_bgmvol',function(){return bgmVol},function(v){bgmVol=v;if(bgm.run&&bgm.master){bgm.master.gain.cancelScheduledValues(actx.currentTime);bgm.master.gain.setValueAtTime(Math.max(0.0001,1.1*v),actx.currentTime)}}));nav.insertBefore(l,nav.firstChild);
+ if(bgmOn){var go=function(){document.removeEventListener('pointerdown',go);if(bgmOn)bgmStart()};document.addEventListener('pointerdown',go)}})();
 window.addEventListener('hashchange',route);route();
 })();
+

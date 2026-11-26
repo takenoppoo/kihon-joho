@@ -81,3 +81,5 @@ nav{display:flex;align-items:center;flex-wrap:wrap;gap:0 4px;white-space:nowrap}
 .stepc{margin:10px 0;padding:8px 10px;background:#fff;border-left:3px solid #1FA596;border-radius:6px}.stepc p{margin:4px 0}.stepc .stepT{font-weight:700;color:#14796e}
 
 .top nav{margin-left:auto}
+
+.vol{width:56px;height:16px;margin:0 6px 0 2px;accent-color:#1FA596;vertical-align:middle}
