@@ -198,7 +198,7 @@ function run(items,mode,title){
     var ul=el('ul','choices'),btns=[];
     it.order.forEach(function(orig,k){
       var li=el('li'),b=el('button','ch');b.appendChild(el('span','m',MARK[k]));b.appendChild(chBody(q.choices[orig]));
-      b.onclick=function(){if(fixed)return;sel=k;btns.forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');go.disabled=false};
+      b.onclick=function(){if(fixed)return;sfxTap();sel=k;btns.forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');go.disabled=false};
       btns.push(b);li.appendChild(b);ul.appendChild(li)});
     c.appendChild(ul);
     var area=el('div'),w=el('div','btns'),go=el('button','btn primary','解答する');go.disabled=true;
@@ -280,9 +280,10 @@ var actx=null;
 function ldv(k,d){try{var v=parseFloat(localStorage.getItem(k));return isNaN(v)?d:v}catch(e){return d}}
 var sfxVol=ldv('kihon_sfxvol',0.5),bgmVol=ldv('kihon_bgmvol',0.5);
 function slider(key,get,set){var r=document.createElement('input');r.type='range';r.min=0;r.max=1;r.step=0.05;r.value=get();r.className='vol';r.title='音量';r.oninput=function(){set(parseFloat(r.value));try{localStorage.setItem(key,r.value)}catch(e){}};return r}
-function tone(f,t0,d,type,vol){var o=actx.createOscillator(),g=actx.createGain(),lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1800;o.type=type;o.frequency.value=f;o.connect(g);g.connect(lp);lp.connect(actx.destination);var t=actx.currentTime+t0;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol*sfxVol*2,t+0.04);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.05)}
+function tone(f,t0,d,type,vol,lpf,att){var o=actx.createOscillator(),g=actx.createGain(),lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=lpf||1800;o.type=type;o.frequency.value=f;o.connect(g);g.connect(lp);lp.connect(actx.destination);var t=actx.currentTime+t0;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol*sfxVol*2,t+(att||0.04));g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.05)}
+function sfxTap(){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();[[659,0],[784,0.09],[1319,0.18]].forEach(function(a){tone(a[0],a[1],0.22,'square',0.05,3500,0.005)})}catch(e){}}
 function sfx(ok){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
- if(ok){tone(880,0,0.35,'sine',0.12);tone(659,0.2,0.6,'sine',0.12)}
+ if(ok){[[1319,0],[1047,0.22]].forEach(function(a){tone(a[0],a[1],0.9,'sine',0.14,6000,0.005);tone(a[0]*2.76,a[1],0.35,'sine',0.04,8000,0.005);tone(a[0]*5.4,a[1],0.15,'sine',0.015,9000,0.005)})}
  else{tone(196,0,0.18,'triangle',0.14);tone(196,0.24,0.4,'triangle',0.14)}}catch(e){}}
 (function(){var nav=document.querySelector('header nav');if(!nav)return;var l=document.createElement('label');l.className='spd';var c=document.createElement('input');c.type='checkbox';c.checked=sfxOn;c.onchange=function(){sfxOn=c.checked;try{localStorage.setItem('kihon_sfx',sfxOn?'1':'0')}catch(e){}if(sfxOn)sfx(true)};l.appendChild(c);l.appendChild(document.createTextNode('効果音'));l.appendChild(slider('kihon_sfxvol',function(){return sfxVol},function(v){sfxVol=v;clearTimeout(window.__sv);window.__sv=setTimeout(function(){if(sfxOn)sfx(true)},250)}));nav.insertBefore(l,nav.firstChild)})();
 // 集中用のBGM（ピアノ＋弦のやさしい音）。曲のファイルは使わず、ブラウザで自動演奏します
