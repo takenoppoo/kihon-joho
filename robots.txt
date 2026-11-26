@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://takenoppoo.github.io/kihon-joho/sitemap.xml
