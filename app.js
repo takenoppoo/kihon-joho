@@ -26,7 +26,7 @@ function chk(no){
   b.onclick=function(){toggleW(no);draw()};draw();return b;
 }
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
-function clear(){stopSpeak();app.innerHTML='';window.scrollTo(0,0)}
+function clear(){stopSpeak();app.innerHTML='';var cs=document.getElementById('crumbslot');if(cs)cs.innerHTML='';window.scrollTo(0,0)}
 
 var synth=window.speechSynthesis, playing=null;
 function stopSpeak(){if(synth)synth.cancel();if(audio){audio.pause();audio=null}if(playing){playing.classList.remove('on');playing=null}}
@@ -108,7 +108,8 @@ var SUBJ=[
 function allFields(s){return s.groups.reduce(function(a,g){return a.concat(g.fields)},[])}
 function volsOf(sid,fid){return VOLS.filter(function(v){return (v.subj||'A')===sid&&(v.field||'sec')===fid})}
 function qCount(vs){return vs.reduce(function(n,v){return n+v.qs.length},0)}
-function crumb(parts){var p=el('p','crumb');parts.forEach(function(x,i){if(i)p.appendChild(document.createTextNode(' ＞ '));if(x[1]){var a=el('a',0,x[0]);a.href=x[1];p.appendChild(a)}else p.appendChild(el('span',0,x[0]))});return p}
+function crumb(parts){var p=el('p','crumb');parts.forEach(function(x,i){if(i)p.appendChild(document.createTextNode(' ＞ '));if(x[1]){var a=el('a',0,x[0]);a.href=x[1];p.appendChild(a)}else p.appendChild(el('span',0,x[0]))});var cs=document.getElementById('crumbslot');if(cs){cs.innerHTML='';cs.appendChild(p);return document.createTextNode('')}return p}
+function volCrumb(v,last){var s=SUBJ.filter(function(x){return x.id===(v.subj||'A')})[0],f=s&&allFields(s).filter(function(x){return x.id===(v.field||'sec')})[0];var a=[['ホーム','#top']];if(s)a.push([s.name,'#subj-'+s.id]);if(s&&f)a.push([f.name,'#field-'+s.id+'-'+f.id]);a.push([last]);return crumb(a)}
 function tile(title,desc,meta,href){
   var c=el('div','card');c.appendChild(el('h2',0,title));
   if(desc)c.appendChild(el('p','meta',desc));
@@ -163,7 +164,7 @@ function volOf(n){for(var i=0;i<VOLS.length;i++)if(VOLS[i].vol===n)return VOLS[i
 /* ---------- 学習 ---------- */
 function study(n){
   var v=volOf(n);if(!v)return home();
-  clear();
+  clear();app.appendChild(volCrumb(v,'第'+dn(v.vol)+'巻　学習資料'));
   app.appendChild(el('h1',0,'学習資料　第'+dn(v.vol)+'巻 '+v.title));
   app.appendChild(el('p','lead','読むだけ、または🔊で聞くだけで学べます。答えと解説は最初から表示しています。'));
   v.qs.slice().sort(function(a,b){return a.ex-b.ex}).forEach(function(q){
@@ -186,6 +187,7 @@ function run(items,mode,title){
   var wrongNow=load();
   function show(){
     clear();
+    (function(){var vv=volOf(parseInt(title,10));if(vv)app.appendChild(volCrumb(vv,'第'+dn(vv.vol)+'巻　'+(mode==='test'?'テスト':mode==='weak'?'苦手ボックス':'復習')))})();
     if(!queue.length)return finish();
     var it=queue[0],q=it.q,sel=-1,fixed=false;
     app.appendChild(el('h1',0,mode==='test'?'テスト　第'+dn(title)+'巻':mode==='weak'?'第'+dn(title)+'巻　苦手ボックス':'第'+dn(title)+'巻　復習（間違えた問題）'));
@@ -244,12 +246,12 @@ function test(n){
 function review(n){
   var v=volOf(n);if(!v)return home();
   var ws=volIds(load(),n);
-  if(!ws.length){clear();app.appendChild(el('h1',0,'第'+dn(n)+'巻　復習'));var c=el('div','card');c.appendChild(el('p',0,'復習する問題はありません。テストで間違えた問題が、ここに集まります。'));var a=el('a','btn primary','テストへ');a.href='#test-'+n;c.appendChild(a);app.appendChild(c);return}
+  if(!ws.length){clear();app.appendChild(volCrumb(v,'第'+dn(n)+'巻　復習'));app.appendChild(el('h1',0,'第'+dn(n)+'巻　復習'));var c=el('div','card');c.appendChild(el('p',0,'復習する問題はありません。テストで間違えた問題が、ここに集まります。'));var a=el('a','btn primary','テストへ');a.href='#test-'+n;c.appendChild(a);app.appendChild(c);return}
   run(prepare(ws),'review',String(n));
 }
 function weak(n){
   var v=volOf(n);if(!v)return home();
-  clear();var ids=sortIds(volIds(loadW(),n));
+  clear();app.appendChild(volCrumb(v,'第'+dn(n)+'巻　苦手ボックス'));var ids=sortIds(volIds(loadW(),n));
   app.appendChild(el('h1',0,'第'+dn(n)+'巻　苦手ボックス'));
   app.appendChild(el('p','lead','テストや復習の右上の「□ 苦手」にチェックした問題が入ります。ここから外すこともできます。'));
   var c=el('div','card');
