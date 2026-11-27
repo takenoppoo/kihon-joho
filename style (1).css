@@ -83,3 +83,10 @@ nav{display:flex;align-items:center;flex-wrap:wrap;gap:0 4px;white-space:nowrap}
 .top nav{margin-left:auto}
 
 .vol{width:56px;height:16px;margin:0 6px 0 2px;accent-color:#1FA596;vertical-align:middle}
+
+.bgmsel{font-size:13px;max-width:150px;margin-left:4px}
+
+.stars{display:inline-flex;gap:4px;margin-left:10px;vertical-align:middle}
+.star{width:28px;height:28px;border:2px solid #cfd8dc;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:#b0bec5;font-size:17px;line-height:1;background:#fff}
+.star.on{border-color:#e0a800;background:#fff3c4;color:#e09b00}
+.starres{margin:6px 0 10px}

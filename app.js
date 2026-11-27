@@ -118,6 +118,13 @@ function tile(title,desc,meta,href){
   var b=el('div','btns');
   if(href){var a=el('a','btn primary','開く');a.href=href;b.appendChild(a)}else{b.appendChild(el('span','meta','準備中'))}
   c.appendChild(b);return c}
+function random10(sid){if(location.hash==='#random-'+sid)startRandom(sid);else location.hash='#random-'+sid}
+function startRandom(sid){
+  var ids=[];VOLS.forEach(function(v){if((v.subj||'A')===sid)v.qs.forEach(function(q){ids.push('v'+v.vol+'-'+q.no)})});
+  if(!ids.length)return;
+  run(prepare(shuffle(ids).slice(0,10)),'test','random-'+sid);
+}
+function isRand(t){return typeof t==='string'&&t.indexOf('random')===0}
 function home(){
   clear();
   app.appendChild(el('h1',0,'基本情報技術者 対策'));
@@ -126,6 +133,13 @@ function home(){
     var n=0,vs=0;allFields(s).forEach(function(f){var x=volsOf(s.id,f.id);n+=qCount(x);vs+=x.length});
     app.appendChild(tile(s.name,s.desc,vs?('問題集'+vs+'冊 ／ '+n+'問'):'',s.id==='B'||vs?'#subj-'+s.id:''));
   });
+  SUBJ.forEach(function(s){
+    var n=0;allFields(s).forEach(function(f){n+=qCount(volsOf(s.id,f.id))});
+    var rc=el('div','card');rc.appendChild(el('h2',0,s.name+'　ランダム10問'));
+    rc.appendChild(el('p','meta',n?('科目'+s.id+'だけの問題から、10問をランダムに出します。'):'問題を準備中です。'));
+    var rw=el('div','btns');
+    if(n){var rb=el('button','btn primary',s.name+'のランダム10問に挑戦');rb.onclick=function(){random10(s.id)};rw.appendChild(rb)}else rw.appendChild(el('span','meta','準備中'));
+    rc.appendChild(rw);app.appendChild(rc)});
 }
 function subjPage(sid){
   var s=SUBJ.filter(function(x){return x.id===sid})[0];if(!s)return home();
@@ -152,7 +166,7 @@ function fieldPage(sid,fid){
   app.appendChild(el('p','lead','資料で学ぶ → テストで確認 → 間違えた問題だけ復習。'));
   volsOf(sid,fid).forEach(function(v){
     var c=el('div','card');
-    c.appendChild(el('span','badge','第'+dn(v.vol)+'巻'));
+    c.appendChild(el('span','badge','第'+dn(v.vol)+'巻'));c.appendChild(starBox(v.vol,starsOf(v.vol)));
     c.appendChild(el('h2',0,v.title));
     c.appendChild(el('p','meta','学習資料 例題'+v.qs.length+'問 ／ テスト'+v.qs.length+'問'));
     var b=el('div','btns');
@@ -160,6 +174,12 @@ function fieldPage(sid,fid){
     c.appendChild(b);app.appendChild(c);
   });
 }
+var SKEY='kihon_stars',smem={};
+function loadS(){try{var v=localStorage.getItem(SKEY);if(v)return JSON.parse(v)}catch(e){}return smem}
+function saveS(o){smem=o;try{localStorage.setItem(SKEY,JSON.stringify(o))}catch(e){}}
+function starsOf(n){return Math.min(3,loadS()[n]||0)}
+function addStar(n){var o=loadS(),c=Math.min(3,o[n]||0);if(c>=3)return 3;o[n]=c+1;saveS(o);return c+1}
+function starBox(n,cnt){var w=el('span','stars');w.title='全問正解のテストを3回で、★3つ';for(var i=0;i<3;i++)w.appendChild(el('span','star'+(i<cnt?' on':''),i<cnt?'★':'☆'));return w}
 function volIds(a,n){return a.filter(function(id){return Q[id]&&Q[id].vol===n})}
 function volOf(n){for(var i=0;i<VOLS.length;i++)if(VOLS[i].vol===n)return VOLS[i];return null}
 /* ---------- 学習 ---------- */
@@ -188,10 +208,10 @@ function run(items,mode,title){
   var wrongNow=load();
   function show(){
     clear();
-    (function(){var vv=volOf(parseInt(title,10));if(vv)app.appendChild(volCrumb(vv,'第'+dn(vv.vol)+'巻　'+(mode==='test'?'テスト':mode==='weak'?'苦手ボックス':'復習')))})();
+    (function(){var vv=volOf(parseInt(title,10));if(vv)app.appendChild(volCrumb(vv,'第'+dn(vv.vol)+'巻　'+(mode==='test'?'テスト':mode==='weak'?'苦手ボックス':'復習')));else if(isRand(title))app.appendChild(crumb([['ホーム','#top'],['ランダム10問（科目'+title.slice(-1)+'）']]))})();
     if(!queue.length)return finish();
     var it=queue[0],q=it.q,sel=-1,fixed=false;
-    app.appendChild(el('h1',0,mode==='test'?'テスト　第'+dn(title)+'巻':mode==='weak'?'第'+dn(title)+'巻　苦手ボックス':'第'+dn(title)+'巻　復習（間違えた問題）'));
+    app.appendChild(el('h1',0,isRand(title)?'ランダム10問（科目'+title.slice(-1)+'）':mode==='test'?'テスト　第'+dn(title)+'巻':mode==='weak'?'第'+dn(title)+'巻　苦手ボックス':'第'+dn(title)+'巻　復習（間違えた問題）'));
     var bar=el('div','bar'),i=el('i');i.style.width=(done/total*100)+'%';bar.appendChild(i);app.appendChild(bar);
     var c=el('div','card');c.appendChild(chk(q.id));
     c.appendChild(qBlock(it,qLabel(q)+(mode==='test'?'　':'（もう一度）　')+'残り'+queue.length+'問'));
@@ -229,13 +249,17 @@ function run(items,mode,title){
     var c=el('div','card');
     c.appendChild(el('div','meta',mode==='test'?'テスト結果':'復習結果'));
     c.appendChild(el('p','score',good+' / '+keys.length));
+    if(mode==='test'){var vv=volOf(parseInt(title,10));
+      if(vv&&good===keys.length&&keys.length>=vv.qs.length){var before=starsOf(vv.vol),after=addStar(vv.vol);var sb=el('div','starres');sb.appendChild(starBox(vv.vol,after));
+        sb.appendChild(el('p','lead',after>before?(after>=3?'全問正解！　★が3つそろいました。この巻はクリアです。':'全問正解！　★を1つ獲得しました（'+after+' / 3）。'):'全問正解！　この巻は、すでに★3つです。'));c.appendChild(sb);try{sfx(true)}catch(e){}}
+      else if(vv){var sb2=el('div','starres');sb2.appendChild(starBox(vv.vol,starsOf(vv.vol)));sb2.appendChild(el('p','lead','全問正解のテストを3回で、★3つです。1回目で全部当てると、★が1つ増えます。'));c.appendChild(sb2)}}
     c.appendChild(el('p','lead',mode==='test'?'1回目で正解した数です。間違えた問題は、解き直して正解するまで出しました。解けた問題は、復習の一覧から消えます。':mode==='weak'?'苦手ボックスの中身は、そのまま残っています。出すのは、苦手ページで外してください。':'すべて正解できました。復習の一覧は空になりました。'));
     var ul=el('ul','list');
     sortIds(keys).forEach(function(k){
       var li=el('li');li.appendChild(el('b',firstTry[k]?'o':'x',firstTry[k]?'○':'×'));li.appendChild(el('span',0,qLabel(Q[k])+'　'+qShort(Q[k])));ul.appendChild(li)});
     c.appendChild(ul);
-    var w=el('div','btns'),a=el('a','btn primary','目次へ');a.href='#field-A-sec';w.appendChild(a);
-    if(mode==='test'){var r=el('button','btn','もう一度テスト');r.onclick=function(){test(parseInt(title,10))};w.appendChild(r)}
+    var w=el('div','btns'),a=el('a','btn primary',isRand(title)?'ホームへ':'目次へ');a.href=isRand(title)?'#top':'#field-A-sec';w.appendChild(a);
+    if(mode==='test'){var r=el('button','btn',isRand(title)?'もう10問':'もう一度テスト');r.onclick=function(){if(isRand(title))random10(title.slice(-1));else test(parseInt(title,10))};w.appendChild(r)}
     c.appendChild(w);app.appendChild(c);
   }
   show();
@@ -266,8 +290,9 @@ function weak(n){
   w.appendChild(go);c.appendChild(w);app.appendChild(c);
 }
 function route(){
-  var h=(location.hash||'#top').slice(1),m=/^(study|test|review|weak)-(\d+)$/.exec(h),ms=/^subj-([AB])$/.exec(h),mf=/^field-([AB])-(\w+)$/.exec(h);
+  var h=(location.hash||'#top').slice(1),m=/^(study|test|review|weak)-(\d+)$/.exec(h),ms=/^subj-([AB])$/.exec(h),mf=/^field-([AB])-(\w+)$/.exec(h),mr=/^random-([AB])$/.exec(h);
   countNav();
+  if(mr)return startRandom(mr[1]);
   if(ms)return subjPage(ms[1]);
   if(mf)return fieldPage(mf[1],mf[2]);
   var n=m&&parseInt(m[2],10);
