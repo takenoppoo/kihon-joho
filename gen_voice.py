@@ -72,7 +72,12 @@ for a in sys.argv:
     if a.startswith("--jobs="): JOBS = int(a.split("=")[1])
 from concurrent.futures import ThreadPoolExecutor
 tasks = []
+# マネジメント系・ストラテジ系の分野だけ作る（技術系は作らない）。全部作るときは --all を付ける
+ONLY = {"pm", "sm", "audit", "sstr", "splan", "mgmt", "tech", "biz", "corp", "law"}
+ALL = "--all" in sys.argv
 for v in sorted(VOLS, key=lambda v: v["vol"]):
+    if not ALL and v.get("field") not in ONLY:
+        continue
     for q in sorted({q["ex"]: q for q in v["qs"]}.values(), key=lambda q: q["ex"]):
         tasks.append((v["vol"], q))
 

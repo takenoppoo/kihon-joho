@@ -1,3 +1,7 @@
+/* 追加の問題集：index.html に読み込みの行がなくても、ここで読み込む（すでに読み込み済みなら何もしない） */
+(function(){var ids=[1601,1602,1603,1701,1702,1703,1704,1705,1801,1802,1803,1901,1902,1903,2001,2002,2003,2004,2101,2201,2202,2203,2204,2301,2302,2303,2304,2401,2402,2403];window.VOLS=window.VOLS||[];
+ids.forEach(function(id){if(window.VOLS.some(function(v){return v.vol===id}))return;
+try{var x=new XMLHttpRequest();x.open('GET','data_vol'+id+'.js',false);x.send();if(x.status===200)(0,eval)(x.responseText)}catch(e){}})})();
 (function(){
 var VOLS=(window.VOLS||[]).slice().sort(function(a,b){return a.vol-b.vol}), MARK=['ア','イ','ウ','エ'], KEY='kihon_wrong2';
 var Q={};VOLS.forEach(function(v){v.qs.forEach(function(q,i){q.dno=i+1;q.vol=v.vol;q.id='v'+v.vol+'-'+q.no;Q[q.id]=q})});
@@ -170,7 +174,16 @@ function fieldPage(sid,fid){
     c.appendChild(el('h2',0,v.title));
     c.appendChild(el('p','meta','学習資料 例題'+v.qs.length+'問 ／ テスト'+v.qs.length+'問'));
     var b=el('div','btns');
-    [['1. 学習資料を読む','#study-'+v.vol,1],['2. テストを受ける','#test-'+v.vol,0],['3. 間違えた問題を復習（'+volIds(load(),v.vol).length+'問）','#review-'+v.vol,0],['4. 苦手ボックス（'+volIds(loadW(),v.vol).length+'問）','#weak-'+v.vol,0]].forEach(function(x){var a=el('a','btn'+(x[2]?' primary':''),x[0]);a.href=x[1];b.appendChild(a)});
+    var P=partsOf(v);
+    if(P.length>1){
+      c.appendChild(el('p','meta','5問前後ずつ、'+P.length+'つのセットに分けています。'));
+      ['study','test'].forEach(function(kind){c.appendChild(el('p','meta',kind==='study'?'1. 学習資料':'2. テスト'));var d=el('div','btns');
+        P.forEach(function(g,i){var a=el('a','btn'+(kind==='study'&&i===0?' primary':''),CN[i]+'（'+g.length+'問）');a.href='#'+kind+'-'+v.vol+'-'+(i+1);d.appendChild(a)});
+        if(kind==='test'){var a=el('a','btn','全問（'+v.qs.length+'問）');a.href='#test-'+v.vol;d.appendChild(a)}
+        c.appendChild(d)});
+      [['3. 間違えた問題を復習（'+volIds(load(),v.vol).length+'問）','#review-'+v.vol],['4. 苦手ボックス（'+volIds(loadW(),v.vol).length+'問）','#weak-'+v.vol]].forEach(function(x){var a=el('a','btn',x[0]);a.href=x[1];b.appendChild(a)});
+    }else{
+    [['1. 学習資料を読む','#study-'+v.vol,1],['2. テストを受ける','#test-'+v.vol,0],['3. 間違えた問題を復習（'+volIds(load(),v.vol).length+'問）','#review-'+v.vol,0],['4. 苦手ボックス（'+volIds(loadW(),v.vol).length+'問）','#weak-'+v.vol,0]].forEach(function(x){var a=el('a','btn'+(x[2]?' primary':''),x[0]);a.href=x[1];b.appendChild(a)});}
     c.appendChild(b);app.appendChild(c);
   });
 }
@@ -180,15 +193,18 @@ function saveS(o){smem=o;try{localStorage.setItem(SKEY,JSON.stringify(o))}catch(
 function starsOf(n){return Math.min(3,loadS()[n]||0)}
 function addStar(n){var o=loadS(),c=Math.min(3,o[n]||0);if(c>=3)return 3;o[n]=c+1;saveS(o);return c+1}
 function starBox(n,cnt){var w=el('span','stars');w.title='全問正解のテストを3回で、★3つ';for(var i=0;i<3;i++)w.appendChild(el('span','star'+(i<cnt?' on':''),i<cnt?'★':'☆'));return w}
+var CN='①②③④⑤⑥';
+function partsOf(v){var a=v.qs.slice().sort(function(x,y){return x.ex-y.ex});if(a.length<=6)return [a];var k=Math.ceil(a.length/5),sz=Math.ceil(a.length/k),r=[];for(var i=0;i<a.length;i+=sz)r.push(a.slice(i,i+sz));return r}
 function volIds(a,n){return a.filter(function(id){return Q[id]&&Q[id].vol===n})}
 function volOf(n){for(var i=0;i<VOLS.length;i++)if(VOLS[i].vol===n)return VOLS[i];return null}
 /* ---------- 学習 ---------- */
-function study(n){
+function study(n,p){
   var v=volOf(n);if(!v)return home();
+  var P=partsOf(v),pi=(p&&P.length>1&&p<=P.length)?p-1:-1,lab=pi>=0?CN[pi]:'';
   clear();app.appendChild(volCrumb(v,'第'+dn(v.vol)+'巻　学習資料'));
-  app.appendChild(el('h1',0,'学習資料　第'+dn(v.vol)+'巻 '+v.title));
+  app.appendChild(el('h1',0,'学習資料　第'+dn(v.vol)+'巻 '+v.title+(lab?'　'+lab:'')));
   app.appendChild(el('p','lead','読むだけ、または🔊で聞くだけで学べます。答えと解説は最初から表示しています。'));
-  v.qs.slice().sort(function(a,b){return a.ex-b.ex}).forEach(function(q){
+  (pi>=0?P[pi]:v.qs.slice().sort(function(a,b){return a.ex-b.ex})).forEach(function(q){
     var c=el('div','card study');
     var top=el('div','spktop');top.appendChild(spk(readText(q,'例題'+q.ex),function(){return fkey(q,'')}));c.appendChild(top);
     c.appendChild(qBlock({q:q},'例題 '+q.ex));
@@ -200,10 +216,12 @@ function study(n){
     c.appendChild(expBlock(q,true));
     app.appendChild(c);
   });
-  var a=el('a','btn primary','テストへ進む');a.href='#test-'+v.vol;var w=el('div','btns');w.appendChild(a);app.appendChild(w);
+  var a=el('a','btn primary',lab?lab+'のテストへ進む':'テストへ進む');a.href='#test-'+v.vol+(pi>=0?'-'+(pi+1):'');var w=el('div','btns');w.appendChild(a);
+  if(pi>=0&&pi<P.length-1){var nx=el('a','btn','次の資料 '+CN[pi+1]);nx.href='#study-'+v.vol+'-'+(pi+2);w.appendChild(nx)}
+  app.appendChild(w);
 }
 /* ---------- 出題（テスト・復習 共通） ---------- */
-function run(items,mode,title){
+function run(items,mode,title,part){
   var queue=items.slice(),done=0,total=items.length,log={},firstTry={};
   var wrongNow=load();
   function show(){
@@ -211,7 +229,7 @@ function run(items,mode,title){
     (function(){var vv=volOf(parseInt(title,10));if(vv)app.appendChild(volCrumb(vv,'第'+dn(vv.vol)+'巻　'+(mode==='test'?'テスト':mode==='weak'?'苦手ボックス':'復習')));else if(isRand(title))app.appendChild(crumb([['ホーム','#top'],['ランダム10問（科目'+title.slice(-1)+'）']]))})();
     if(!queue.length)return finish();
     var it=queue[0],q=it.q,sel=-1,fixed=false;
-    app.appendChild(el('h1',0,isRand(title)?'ランダム10問（科目'+title.slice(-1)+'）':mode==='test'?'テスト　第'+dn(title)+'巻':mode==='weak'?'第'+dn(title)+'巻　苦手ボックス':'第'+dn(title)+'巻　復習（間違えた問題）'));
+    app.appendChild(el('h1',0,isRand(title)?'ランダム10問（科目'+title.slice(-1)+'）':mode==='test'?'テスト　第'+dn(title)+'巻'+(part?'　'+CN[part-1]:''):mode==='weak'?'第'+dn(title)+'巻　苦手ボックス':'第'+dn(title)+'巻　復習（間違えた問題）'));
     var bar=el('div','bar'),i=el('i');i.style.width=(done/total*100)+'%';bar.appendChild(i);app.appendChild(bar);
     var c=el('div','card');c.appendChild(chk(q.id));
     c.appendChild(qBlock(it,qLabel(q)+(mode==='test'?'　':'（もう一度）　')+'残り'+queue.length+'問'));
@@ -252,20 +270,23 @@ function run(items,mode,title){
     if(mode==='test'){var vv=volOf(parseInt(title,10));
       if(vv&&good===keys.length&&keys.length>=vv.qs.length){var before=starsOf(vv.vol),after=addStar(vv.vol);var sb=el('div','starres');sb.appendChild(starBox(vv.vol,after));
         sb.appendChild(el('p','lead',after>before?(after>=3?'全問正解！　★が3つそろいました。この巻はクリアです。':'全問正解！　★を1つ獲得しました（'+after+' / 3）。'):'全問正解！　この巻は、すでに★3つです。'));c.appendChild(sb);try{sfx(true)}catch(e){}}
-      else if(vv){var sb2=el('div','starres');sb2.appendChild(starBox(vv.vol,starsOf(vv.vol)));sb2.appendChild(el('p','lead','全問正解のテストを3回で、★3つです。1回目で全部当てると、★が1つ増えます。'));c.appendChild(sb2)}}
+      else if(vv){var sb2=el('div','starres');sb2.appendChild(starBox(vv.vol,starsOf(vv.vol)));sb2.appendChild(el('p','lead',part?'★は、「全問」のテストで集めます。このセットは、ここまでです。':'全問正解のテストを3回で、★3つです。1回目で全部当てると、★が1つ増えます。'));c.appendChild(sb2)}}
     c.appendChild(el('p','lead',mode==='test'?'1回目で正解した数です。間違えた問題は、解き直して正解するまで出しました。解けた問題は、復習の一覧から消えます。':mode==='weak'?'苦手ボックスの中身は、そのまま残っています。出すのは、苦手ページで外してください。':'すべて正解できました。復習の一覧は空になりました。'));
     var ul=el('ul','list');
     sortIds(keys).forEach(function(k){
       var li=el('li');li.appendChild(el('b',firstTry[k]?'o':'x',firstTry[k]?'○':'×'));li.appendChild(el('span',0,qLabel(Q[k])+'　'+qShort(Q[k])));ul.appendChild(li)});
     c.appendChild(ul);
     var w=el('div','btns'),a=el('a','btn primary',isRand(title)?'ホームへ':'目次へ');a.href=isRand(title)?'#top':'#field-A-sec';w.appendChild(a);
-    if(mode==='test'){var r=el('button','btn',isRand(title)?'もう10問':'もう一度テスト');r.onclick=function(){if(isRand(title))random10(title.slice(-1));else test(parseInt(title,10))};w.appendChild(r)}
+    if(mode==='test'){var r=el('button','btn',isRand(title)?'もう10問':'もう一度テスト');r.onclick=function(){if(isRand(title))random10(title.slice(-1));else test(parseInt(title,10),part)};w.appendChild(r);
+      if(part){var vp=volOf(parseInt(title,10));if(vp&&part<partsOf(vp).length){var nt=el('a','btn primary','次のセット '+CN[part]);nt.href='#test-'+vp.vol+'-'+(part+1);w.insertBefore(nt,w.firstChild)}}}
     c.appendChild(w);app.appendChild(c);
   }
   show();
 }
-function test(n){
+function test(n,p){
   var v=volOf(n);if(!v)return home();
+  var P=partsOf(v);
+  if(p&&P.length>1&&p<=P.length)return run(prepare(P[p-1].map(function(q){return q.id})),'test',String(v.vol),p);
   run(prepare(v.qs.map(function(q){return q.id})),'test',String(v.vol));
 }
 function review(n){
@@ -290,13 +311,13 @@ function weak(n){
   w.appendChild(go);c.appendChild(w);app.appendChild(c);
 }
 function route(){
-  var h=(location.hash||'#top').slice(1),m=/^(study|test|review|weak)-(\d+)$/.exec(h),ms=/^subj-([AB])$/.exec(h),mf=/^field-([AB])-(\w+)$/.exec(h),mr=/^random-([AB])$/.exec(h);
+  var h=(location.hash||'#top').slice(1),m=/^(study|test|review|weak)-(\d+)(?:-(\d+))?$/.exec(h),ms=/^subj-([AB])$/.exec(h),mf=/^field-([AB])-(\w+)$/.exec(h),mr=/^random-([AB])$/.exec(h);
   countNav();
   if(mr)return startRandom(mr[1]);
   if(ms)return subjPage(ms[1]);
   if(mf)return fieldPage(mf[1],mf[2]);
   var n=m&&parseInt(m[2],10);
-  if(m){({study:study,test:test,review:review,weak:weak})[m[1]](n)}
+  if(m){({study:study,test:test,review:review,weak:weak})[m[1]](n,m[3]?parseInt(m[3],10):0)}
   else home();
 }
 // 効果音（ピンポーン／ぶっぶー）。音声ファイルは使わず、ブラウザで鳴らします
