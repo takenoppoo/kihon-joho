@@ -142,6 +142,59 @@ function startRandom(sid){
   run(prepare(shuffle(ids).slice(0,10)),'test','random-'+sid);
 }
 function isRand(t){return typeof t==='string'&&t.indexOf('random')===0}
+
+/* ===== 学習のきろく（ホームの一番下）：日ごとの問題数・カレンダー・分野ごとの完成率 ===== */
+var HIK='kihon_hist2',DNK='kihon_done2',calOff=0;
+function ldJ(k,m){try{var v=localStorage.getItem(k);if(v)return JSON.parse(v)}catch(e){}return m}
+function svJ(k,o){try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}}
+function ymd(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
+function dayRec(h,k){return h[k]||{n:0,ok:0,s:0}}
+function logAns(id,ok){var h=ldJ(HIK,{}),t=ymd(new Date()),r=h[t]||(h[t]={n:0,ok:0,s:0});r.n++;if(ok)r.ok++;svJ(HIK,h);if(ok){var d=ldJ(DNK,{});if(!d[id]){d[id]=1;svJ(DNK,d)}}}
+function logStudy(){var h=ldJ(HIK,{}),t=ymd(new Date()),r=h[t]||(h[t]={n:0,ok:0,s:0});r.s=(r.s||0)+1;svJ(HIK,h)}
+(function(){var st=document.createElement('style');st.textContent='.hs{margin-top:6px}.hs h3{font-size:16px;margin:18px 0 8px;color:var(--ink)}.hsum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.hsum div{background:#eaf6f4;border-radius:12px;padding:10px 12px}.hsum b{display:block;font-size:24px;color:#14796e;line-height:1.2}.hsum span{font-size:13px;color:var(--sub)}.hmsg{background:#fff6e5;border-radius:12px;padding:10px 12px;font-weight:600;margin:12px 0 0}.hcalh{display:flex;align-items:center;justify-content:space-between;margin:6px 0}.hcalh button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:2px 12px;cursor:pointer}.hcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}.hcal .w{font-size:12px;color:var(--sub)}.hcal .d{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;background:#f1f3f7;color:#7a8494}.hcal .l1{background:#bfe9e3;color:#14524b}.hcal .l2{background:#79d0c5;color:#0d4a43}.hcal .l3{background:#1fa596;color:#fff}.hcal .l4{background:#14796e;color:#fff;font-weight:700}.hcal .t{outline:2px solid #e2566b}.hleg{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--sub);margin-top:6px;justify-content:flex-end}.hleg i{width:14px;height:14px;border-radius:4px;display:inline-block}.hbar{display:flex;align-items:flex-end;gap:8px;height:120px;margin-top:8px}.hbar div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:12px;color:var(--sub)}.hbar i{display:block;width:100%;background:#1fa596;border-radius:6px 6px 0 0;min-height:2px}.hbar em{font-style:normal;font-size:12px;color:var(--ink);margin-bottom:2px}.hf{margin:8px 0}.hf .t{display:flex;justify-content:space-between;font-size:14px;margin-bottom:3px}.hf .t span:last-child{color:var(--sub);font-size:13px}.hf .tr{height:12px;background:#e6eaf0;border-radius:99px;overflow:hidden}.hf .tr i{display:block;height:100%;background:linear-gradient(90deg,#1fa596,#4cc7b9);border-radius:99px}.hf.full .tr i{background:linear-gradient(90deg,#f5b335,#f28c28)}.hgrp{font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 2px}'
+document.head.appendChild(st)})();
+function historyCard(){
+  var h=ldJ(HIK,{}),dn2=ldJ(DNK,{}),now=new Date(),today=ymd(now);
+  var keys=Object.keys(h).filter(function(k){return h[k].n>0||h[k].s>0});
+  var totN=0,totOk=0;Object.keys(h).forEach(function(k){totN+=h[k].n||0;totOk+=h[k].ok||0});
+  var streak=0,d=new Date(now);if(!(dayRec(h,ymd(d)).n>0||dayRec(h,ymd(d)).s>0))d.setDate(d.getDate()-1);
+  while(dayRec(h,ymd(d)).n>0||dayRec(h,ymd(d)).s>0){streak++;d.setDate(d.getDate()-1)}
+  var wk=0;for(var i=0;i<7;i++){var x=new Date(now);x.setDate(x.getDate()-i);wk+=dayRec(h,ymd(x)).n}
+  var allN=0,doneN=0;Object.keys(Q).forEach(function(id){allN++;if(dn2[id])doneN++});
+  var c=el('div','card hs');c.appendChild(el('h2',0,'📈 学習のきろく'));
+  var sm=el('div','hsum');
+  [[streak+'日','連続で勉強'],[dayRec(h,today).n+'問','今日解いた問題'],[wk+'問','直近7日間'],[totN+'問','これまでの合計'],[(totN?Math.round(totOk*100/totN):0)+'%','正解率'],[doneN+'/'+allN+'問','解けた問題']].forEach(function(a){var dv=el('div');dv.appendChild(el('b',0,a[0]));dv.appendChild(el('span',0,a[1]));sm.appendChild(dv)});
+  c.appendChild(sm);
+  var msg=!totN?'まずは1問、解いてみましょう。ここに、あなたの努力が積み上がります。':streak>=3?streak+'日連続！　この調子で進めましょう。':doneN>=allN*0.5?'半分以上の問題が解けました。すごい！':'一歩ずつ、着実に積み上がっています。';
+  c.appendChild(el('div','hmsg',msg));
+  /* カレンダー */
+  c.appendChild(el('h3',0,'カレンダー（色が濃いほど、たくさん解いた日）'));
+  var cal=el('div'),calBox=el('div');
+  function drawCal(){
+    calBox.innerHTML='';var m=new Date(now.getFullYear(),now.getMonth()+calOff,1);
+    var hd=el('div','hcalh'),pv=el('button',0,'◀'),nx=el('button',0,'▶');pv.onclick=function(){calOff--;drawCal()};nx.onclick=function(){if(calOff<0){calOff++;drawCal()}};nx.disabled=calOff>=0;
+    hd.appendChild(pv);hd.appendChild(el('b',0,m.getFullYear()+'年'+(m.getMonth()+1)+'月'));hd.appendChild(nx);calBox.appendChild(hd);
+    var g=el('div','hcal');['日','月','火','水','木','金','土'].forEach(function(w){g.appendChild(el('div','w',w))});
+    for(var i=0;i<m.getDay();i++)g.appendChild(el('div'));
+    var dim=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+    for(var dd=1;dd<=dim;dd++){var k=m.getFullYear()+'-'+pad2(m.getMonth()+1)+'-'+pad2(dd),r=dayRec(h,k),n=r.n,lv=n>=30?4:n>=15?3:n>=5?2:(n>0||r.s>0)?1:0;
+      var cell=el('div','d'+(lv?' l'+lv:'')+(k===today?' t':''),dd);cell.title=n+'問';g.appendChild(cell)}
+    calBox.appendChild(g);
+    var lg=el('div','hleg');lg.appendChild(document.createTextNode('少ない '));['#f1f3f7','#bfe9e3','#79d0c5','#1fa596','#14796e'].forEach(function(col){var i2=el('i');i2.style.background=col;lg.appendChild(i2)});lg.appendChild(document.createTextNode(' 多い'));calBox.appendChild(lg)}
+  drawCal();cal.appendChild(calBox);c.appendChild(cal);
+  /* 直近7日のグラフ */
+  c.appendChild(el('h3',0,'直近7日間に解いた問題数'));
+  var days=[],mx=1;for(var j=6;j>=0;j--){var y=new Date(now);y.setDate(y.getDate()-j);var r2=dayRec(h,ymd(y));days.push([['日','月','火','水','木','金','土'][y.getDay()],r2.n]);if(r2.n>mx)mx=r2.n}
+  var bar=el('div','hbar');days.forEach(function(a){var col=el('div'),em=el('em',0,a[1]||'');var bi=el('i');bi.style.height=Math.round(a[1]*88/mx)+'px';col.appendChild(em);col.appendChild(bi);col.appendChild(el('span',0,a[0]));bar.appendChild(col)});c.appendChild(bar);
+  /* 分野ごとの完成率 */
+  c.appendChild(el('h3',0,'分野ごとの完成率（一度でも正解できた問題の割合）'));
+  SUBJ.forEach(function(s){
+    s.groups.forEach(function(g){
+      var rows=[];g.fields.forEach(function(f){var vs=volsOf(s.id,f.id),n=0,dd2=0;vs.forEach(function(v){v.qs.forEach(function(q){n++;if(dn2[q.id])dd2++})});if(n)rows.push([f.name,dd2,n])});
+      if(!rows.length)return;
+      c.appendChild(el('div','hgrp',g.name||''));
+      rows.forEach(function(r){var pct=Math.round(r[1]*100/r[2]),w=el('div','hf'+(pct===100?' full':''));var t=el('div','t');t.appendChild(el('span',0,r[0]+(pct===100?' ★':'')));t.appendChild(el('span',0,r[1]+' / '+r[2]+'問　'+pct+'%'));w.appendChild(t);var tr=el('div','tr'),bi=el('i');bi.style.width=pct+'%';tr.appendChild(bi);w.appendChild(tr);c.appendChild(w)})})});
+  app.appendChild(c)}
 function home(){
   clear();
   app.appendChild(el('h1',0,'基本情報技術者 対策'));
@@ -158,6 +211,7 @@ function home(){
     var rw=el('div','btns');
     if(n){var rb=el('button','btn primary',s.name+'のランダム10問に挑戦');rb.onclick=function(){random10(s.id)};rw.appendChild(rb)}else rw.appendChild(el('span','meta','準備中'));
     rc.appendChild(rw);app.appendChild(rc)});
+  try{historyCard()}catch(e){}
 }
 function subjPage(sid){
   var s=SUBJ.filter(function(x){return x.id===sid})[0];if(!s)return home();
@@ -219,7 +273,7 @@ function partsOf(v){var a=v.qs.slice().sort(function(x,y){return x.ex-y.ex});if(
 function volIds(a,n){return a.filter(function(id){return Q[id]&&Q[id].vol===n})}
 function volOf(n){for(var i=0;i<VOLS.length;i++)if(VOLS[i].vol===n)return VOLS[i];return null}
 /* ---------- 学習 ---------- */
-function study(n,p){
+function study(n,p){logStudy();
   var v=volOf(n);if(!v)return home();
   var P=partsOf(v),pi=(p&&P.length>1&&p<=P.length)?p-1:-1,lab=pi>=0?CN[pi]:'';
   clear();app.appendChild(volCrumb(v,'第'+dn(v.vol)+'巻　学習資料'));
@@ -269,6 +323,7 @@ function run(items,mode,title,part){
       sfx(ok);area.appendChild(el('div','result '+(ok?'ok':'ng'),ok?'○ 正解':'× 不正解　正解は '+MARK[corrK]));
       area.appendChild(expBlock(q));
       if(!(q.id in firstTry))firstTry[q.id]=ok;
+      logAns(q.id,ok);
       var ws=load();
       if(ok){queue.shift();done++;ws=ws.filter(function(n){return n!==q.id})}
       else{ // 間違えたら、苦手ボックスに自動で入れる。解説のあと、選択肢の順番を変えて同じ問題をもう一度出す
