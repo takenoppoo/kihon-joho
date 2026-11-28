@@ -346,7 +346,7 @@ function run(items,mode,title,part){
     if(mode==='test'){var vv=volOf(parseInt(title,10));
       if(vv&&good===keys.length&&keys.length>=vv.qs.length){var before=starsOf(vv.vol),after=addStar(vv.vol);var sb=el('div','starres');sb.appendChild(starBox(vv.vol,after));
         sb.appendChild(el('p','lead',after>before?(after>=3?'全問正解！　★が3つそろいました。この巻はクリアです。':'全問正解！　★を1つ獲得しました（'+after+' / 3）。'):'全問正解！　この巻は、すでに★3つです。'));c.appendChild(sb);try{sfx(true)}catch(e){}}
-      else if(vv){var sb2=el('div','starres');sb2.appendChild(starBox(vv.vol,starsOf(vv.vol)));if(part){var hb=heartsOf(vv.vol,part),ha=hb;if(good===keys.length)ha=addHeart(vv.vol,part);
+      else if(vv){var sb2=el('div','starres');sb2.appendChild(starBox(vv.vol,starsOf(vv.vol)));if(part){var hb=heartsOf(vv.vol,part),ha=hb;if(good===keys.length){ha=addHeart(vv.vol,part);try{sfxHeart()}catch(e){}}
           var hh=el('p','score',heartStr(ha));hh.style.color='#e2566b';sb2.insertBefore(hh,sb2.firstChild);sb2.removeChild(sb2.lastChild);
           sb2.appendChild(el('p','lead',good===keys.length?(ha>hb?'全問正解！　♥を1つ獲得しました（'+ha+' / 3）。':'全問正解！　このセットは、すでに♥3つです。'):'全問正解で、♥が1つ増えます（今は '+ha+' / 3）。★は、「全問」のテストで全問正解すると増えます。'));
         }else sb2.appendChild(el('p','lead','全問正解のテストを3回で、★3つです。1回目で全部当てると、★が1つ増えます。'));c.appendChild(sb2)}}
@@ -416,6 +416,8 @@ var sfxVol=ldv('kihon_sfxvol',0.5),bgmVol=ldv('kihon_bgmvol',0.5);
 function slider(key,get,set){var r=document.createElement('input');r.type='range';r.min=0;r.max=1;r.step=0.05;r.value=get();r.className='vol';r.title='音量';r.oninput=function(){set(parseFloat(r.value));try{localStorage.setItem(key,r.value)}catch(e){}};return r}
 function tone(f,t0,d,type,vol,lpf,att){var o=actx.createOscillator(),g=actx.createGain(),lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=lpf||1800;o.type=type;o.frequency.value=f;o.connect(g);g.connect(lp);lp.connect(actx.destination);var t=actx.currentTime+t0;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol*sfxVol*2,t+(att||0.04));g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.05)}
 function sfxTap(){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();[[659,0],[784,0.09],[1319,0.18]].forEach(function(a){tone(a[0],a[1],0.22,'square',0.05,3500,0.005)})}catch(e){}}
+function sfxHeart(){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();[[988,0],[1319,0.12],[1568,0.24],[1976,0.36],[2637,0.5]].forEach(function(a){tone(a[0],a[1],0.5,'sine',0.12,7000,0.005);tone(a[0]*2,a[1],0.25,'sine',0.03,9000,0.005)})}catch(e){}}
+document.addEventListener('click',function(e){try{var t=e.target.closest&&e.target.closest('a,button');if(!t||t.disabled)return;if(t.classList.contains('ch')||t.classList.contains('spk')||t.classList.contains('vol'))return;if((t.textContent||'').indexOf('解答する')===0)return;if(!(t.closest('#app')||t.closest('header')))return;if(t.closest('header label'))return;sfxTap()}catch(x){}},true);
 function sfx(ok){if(!sfxOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
  if(ok){[[1319,0],[1047,0.22]].forEach(function(a){tone(a[0],a[1],0.9,'sine',0.14,6000,0.005);tone(a[0]*2.76,a[1],0.35,'sine',0.04,8000,0.005);tone(a[0]*5.4,a[1],0.15,'sine',0.015,9000,0.005)})}
  else{tone(196,0,0.18,'triangle',0.14);tone(196,0.24,0.4,'triangle',0.14)}}catch(e){}}
